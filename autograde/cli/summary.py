@@ -11,11 +11,14 @@ def cmd_summary(args):
 
     path = Path(args.result or Path.cwd()).expanduser().absolute()
     assert path.is_dir(), f'{path} is no regular directory'
+    include_similarities = args.similarities
 
     results = list()
     sources = dict()
+    filenames = []
     for path_ in list_results(path):
         logger.debug(f'read {path_}')
+        filenames.append(path_.absolute())
 
         with mount_tar(path_) as tar, cd(tar):
             r = load_patched()
@@ -30,14 +33,20 @@ def cmd_summary(args):
     results_df.to_csv(path.joinpath('raw.csv'), index=False)
 
     # summarize results
-    summary_df = summarize_results(results)
+    summary_df = summarize_results(results, filenames, include_tasks=True)
     logger.debug('store summary.csv')
     summary_df.to_csv(path.joinpath('summary.csv'), index=False)
 
-    plots = dict(
-        distribution=b64str(plot_score_distribution(summary_df)),
-        similarities=b64str(plot_fraud_matrix(sources))
-    )
+    if include_similarities:
+        plots = dict(
+            distribution=b64str(plot_score_distribution(summary_df)),
+            similarities=b64str(plot_fraud_matrix(sources))
+        )
+    else:
+        plots = dict(
+            score_distribution=b64str(plot_score_distribution(summary_df)),
+            similarities=b64str(plot_score_distribution(summary_df))
+        )
 
     logger.info('render summary.html')
     with open(path.joinpath('summary.html'), mode='wt') as f:

@@ -49,10 +49,10 @@ def cmd_tst(args):
         elif args.backend == 'podman':
             cmd = [
                 'podman', 'run',
-                '-v', f'"{path_tst}:/autograde/test.py:Z"',
-                '-v', f'"{path_nb_}:/autograde/notebook.ipynb:Z"',
-                '-v', f'"{path_tgt}:/autograde/target:Z"',
-                *(('-v', f'"{path_cxt}:/autograde/context:Z"') if path_cxt else ()),
+                '-v', f'"{path_tst}:/autograde/test.py"',
+                '-v', f'"{path_nb_}:/autograde/notebook.ipynb"',
+                '-v', f'"{path_tgt}:/autograde/target"',
+                *(('-v', f'"{path_cxt}:/autograde/context"') if path_cxt else ()),
                 args.tag,
                 *(('-' + 'v' * args.verbose,) if args.verbose > 0 else ())
             ]
@@ -64,7 +64,7 @@ def cmd_tst(args):
 
         if not args.backend:
             return subprocess.call(' '.join(cmd), shell=True)
-
-        return subprocess.run(cmd).returncode
+        return subprocess.call(' '.join(cmd), shell=True)
+        #return subprocess.run(cmd).returncode
 
     return sum(map(run, notebooks))

@@ -75,6 +75,7 @@ def cli(args=None):
 
     # summary sub command
     sum_parser = subparsers.add_parser('summary', help=cmd_summary.__doc__)
+    sum_parser.add_argument('--similarities', action="store_true", help="activates notebook similarity computation")
     sum_parser.add_argument('result', type=str, help='result archives to summarize')
     sum_parser.set_defaults(func=cmd_summary)
 

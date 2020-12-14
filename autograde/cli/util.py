@@ -115,13 +115,36 @@ def merge_results(results) -> pd.DataFrame:
 
     return pd.DataFrame(row_factory(), columns=header)
 
+def summarize_results(results, filenames=None, include_tasks=False) -> pd.DataFrame:
+    task_names = []
+    if include_tasks:
+        task_keys = []
+        print(list(results[0].results[0].__dict__.keys()))
+        for res in results[0].results:
+            task_keys.append(res.id)
+            if len(res.label)>0:
+                task_names.append(str(res.label))
+            else:
+                task_names.append(str(res.target))
 
-def summarize_results(results) -> pd.DataFrame:
-    logger.debug(f'summarize {len(results)} results')
-    header = ['student_id', 'last_name', 'first_name', 'score', 'max_score', 'patches', 'checksum']
+        logger.debug(f'summarize {len(results)} results')
+    header = ['student_id', 'last_name', 'first_name', 'score', 'max_score', 'patches', 'checksum', *task_names, 'filename']
 
+    if filenames is None:
+        filenames = ["" for _ in range(len(results))]
     def row_factory():
-        for r in results:
+        for r, filename in zip(results, filenames):
+            stuff = []
+            if include_tasks:
+                for key in task_keys:
+                    for task in r.results:
+                        if task.id == key:
+                            stuff.append(task.score)
+                            break
+                    else:
+                        stuff.append(0)
+
+
             for member in r.team_members:
                 s = r.summary()
                 yield (
@@ -131,16 +154,44 @@ def summarize_results(results) -> pd.DataFrame:
                     s.score,
                     s.score_max,
                     len(r.applied_patches),
-                    r.checksum
+                    r.checksum,
+                    *stuff,
+                    filename
                 )
 
-    summary_df = pd.DataFrame(row_factory(), columns=header).sort_values(by='score')
-    summary_df['duplicate'] = summary_df['student_id'].duplicated(keep=False)
+    summary_df = pd.DataFrame(row_factory(), columns=header).sort_values(by='last_name')
+    print(summary_df.columns)
+    summary_df['multiple_submissions'] = summary_df['student_id'].duplicated(keep=False)
 
     if not math.isclose(summary_df['max_score'].std(), 0):
         logger.warning('max scores seem not to be consistent!')
 
-    return summary_df.sort_values(by='last_name')
+    return summary_df
+#def summarize_results(results) -> pd.DataFrame:
+#    logger.debug(f'summarize {len(results)} results')
+#    header = ['student_id', 'last_name', 'first_name', 'score', 'max_score', 'patches', 'checksum']
+#
+#    def row_factory():
+#        for r in results:
+#            for member in r.team_members:
+#                s = r.summary()
+#                yield (
+#                    member.student_id,
+#                    member.last_name,
+#                    member.first_name,
+#                    s.score,
+#                    s.score_max,
+#                    len(r.applied_patches),
+#                    r.checksum
+#                )
+#
+#    summary_df = pd.DataFrame(row_factory(), columns=header).sort_values(by='score')
+#    summary_df['duplicate'] = summary_df['student_id'].duplicated(keep=False)
+#
+#    if not math.isclose(summary_df['max_score'].std(), 0):
+#        logger.warning('max scores seem not to be consistent!')
+#
+#    return summary_df.sort_values(by='last_name')
 
 
 def plot_score_distribution(summary_df: pd.DataFrame):
